@@ -41,7 +41,7 @@ func (r *ReconcileJaeger) applyCronJobs(ctx context.Context, jaeger v1.Jaeger, d
 			existing = append(existing, i.DeepCopyObject())
 		}
 
-		inv := inventory.ForCronJobs(desired, existing)
+		inv := inventory.ForCronJobs(existing, desired)
 		for _, d1 := range inv.Create {
 			d := d1.(*batchv1beta1.CronJob)
 			jaeger.Logger().V(-1).Info(
@@ -108,7 +108,7 @@ func (r *ReconcileJaeger) applyCronJobs(ctx context.Context, jaeger v1.Jaeger, d
 				"cronjob", d.Name,
 				"namespace", d.Namespace,
 			)
-			if err := r.client.Create(ctx, d); err != nil {
+			if err := r.client.Update(ctx, d); err != nil {
 				return tracing.HandleError(err, span)
 			}
 		}
@@ -121,7 +121,7 @@ func (r *ReconcileJaeger) applyCronJobs(ctx context.Context, jaeger v1.Jaeger, d
 				"namespace", d.Namespace,
 			)
 			if err := r.client.Delete(ctx, d); err != nil {
-				continue
+				return tracing.HandleError(err, span)
 			}
 		}
 	}
