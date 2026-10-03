@@ -30,16 +30,16 @@ func (r *QueryRoute) Get() *corev1.Route {
 
 	var termination corev1.TLSTerminationType
 	if r.jaeger.Spec.Ingress.Security == v1.IngressSecurityOAuthProxy {
-		termination = corev1.TLSTerminationEdge
-	} else {
 		termination = corev1.TLSTerminationReencrypt
+	} else {
+		termination = corev1.TLSTerminationEdge
 	}
 
 	var name string
 
 	host := ""
 	if len(r.jaeger.Spec.Ingress.Hosts) > 0 {
-		host = r.jaeger.Spec.Ingress.Hosts[len(r.jaeger.Spec.Ingress.Hosts)-1]
+		host = r.jaeger.Spec.Ingress.Hosts[0]
 	}
 
 	if len(r.jaeger.Namespace) >= 63 {
@@ -53,7 +53,7 @@ func (r *QueryRoute) Get() *corev1.Route {
 		}
 	} else {
 		// -namespace is added to the host by OpenShift
-		name = util.Truncate(r.jaeger.Name, 63-len(r.jaeger.Namespace))
+		name = util.Truncate(r.jaeger.Name, 62-len(r.jaeger.Namespace))
 	}
 	name = util.DNSName(name)
 
