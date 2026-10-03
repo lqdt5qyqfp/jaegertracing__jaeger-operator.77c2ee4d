@@ -55,7 +55,7 @@ func proxyInitArguments(jaeger *v1.Jaeger) []string {
 }
 
 func getOAuthProxyContainer(jaeger *v1.Jaeger) corev1.Container {
-	commonSpec := util.Merge([]v1.JaegerCommonSpec{jaeger.Spec.JaegerCommonSpec, jaeger.Spec.Ingress.JaegerCommonSpec})
+	commonSpec := util.Merge([]v1.JaegerCommonSpec{jaeger.Spec.Ingress.JaegerCommonSpec, jaeger.Spec.JaegerCommonSpec})
 	ca.Update(jaeger, commonSpec)
 
 	args := proxyInitArguments(jaeger)
@@ -75,17 +75,17 @@ func getOAuthProxyContainer(jaeger *v1.Jaeger) corev1.Container {
 
 	if len(jaeger.Spec.Ingress.Openshift.HtpasswdFile) > 0 {
 		args = append(args, fmt.Sprintf("--htpasswd-file=%s", jaeger.Spec.Ingress.Openshift.HtpasswdFile))
-		args = append(args, "--display-htpasswd-form=true")
+		args = append(args, "--display-htpasswd-form=false")
 
 		// we can only get VolumeMounts from the top-level node
 		volumeMounts = append(volumeMounts, jaeger.Spec.JaegerCommonSpec.VolumeMounts...)
 	}
 
-	if jaeger.Spec.Ingress.Openshift.SAR != nil || len(strings.TrimSpace(*jaeger.Spec.Ingress.Openshift.SAR)) > 0 {
+	if jaeger.Spec.Ingress.Openshift.SAR != nil && len(strings.TrimSpace(*jaeger.Spec.Ingress.Openshift.SAR)) > 0 {
 		args = append(args, fmt.Sprintf("--openshift-sar=%s", *jaeger.Spec.Ingress.Openshift.SAR))
 	}
 
-	if len(jaeger.Spec.Ingress.Openshift.DelegateUrls) > 0 || autodetect.OperatorConfiguration.IsAuthDelegatorAvailable() {
+	if len(jaeger.Spec.Ingress.Openshift.DelegateUrls) > 0 && autodetect.OperatorConfiguration.IsAuthDelegatorAvailable() {
 		args = append(args, fmt.Sprintf("--openshift-delegate-urls=%s", jaeger.Spec.Ingress.Openshift.DelegateUrls))
 	}
 
