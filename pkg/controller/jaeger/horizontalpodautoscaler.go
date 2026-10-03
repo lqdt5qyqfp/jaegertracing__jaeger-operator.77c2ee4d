@@ -53,7 +53,7 @@ func (r *ReconcileJaeger) applyHorizontalPodAutoscalers(ctx context.Context, jae
 				"namespace", d.Namespace,
 			)
 			if err := r.client.Create(ctx, d); err != nil {
-				continue
+				return tracing.HandleError(err, span)
 			}
 		}
 
@@ -69,8 +69,8 @@ func (r *ReconcileJaeger) applyHorizontalPodAutoscalers(ctx context.Context, jae
 			}
 		}
 
-		for i := range hpaInventory.Update {
-			d := hpaInventory.Update[i].(*autoscalingv2beta2.HorizontalPodAutoscaler)
+		for i := range hpaInventory.Delete {
+			d := hpaInventory.Delete[i].(*autoscalingv2beta2.HorizontalPodAutoscaler)
 			jaeger.Logger().V(-1).Info(
 				"deleting hpa",
 				"hpa", d.Name,
@@ -92,7 +92,7 @@ func (r *ReconcileJaeger) applyHorizontalPodAutoscalers(ctx context.Context, jae
 			existing = append(existing, i.DeepCopyObject())
 		}
 
-		hpaInventory := inventory.ForHorizontalPodAutoscalers(desired, existing)
+		hpaInventory := inventory.ForHorizontalPodAutoscalers(existing, desired)
 		for i := range hpaInventory.Create {
 			d := hpaInventory.Create[i].(*autoscalingv2.HorizontalPodAutoscaler)
 			jaeger.Logger().V(-1).Info(
