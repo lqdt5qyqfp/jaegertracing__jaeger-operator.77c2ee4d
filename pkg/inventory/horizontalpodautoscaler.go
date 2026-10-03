@@ -45,12 +45,13 @@ func ForHorizontalPodAutoscalers(existing []runtime.Object, desired []runtime.Ob
 					tp.ObjectMeta.Annotations[k] = v
 				}
 
-				for k, v := range t1.ObjectMeta.Labels {
+				for k, v := range v1.ObjectMeta.Labels {
 					tp.ObjectMeta.Labels[k] = v
 				}
 
 				update = append(update, tp)
 				delete(mcreate, k)
+				delete(mdelete, k)
 
 			} else {
 				t1 := t.(*autoscalingv2.HorizontalPodAutoscaler)
@@ -60,7 +61,7 @@ func ForHorizontalPodAutoscalers(existing []runtime.Object, desired []runtime.Ob
 				util.InitObjectMeta(tp)
 
 				// we can't blindly DeepCopyInto, so, we select what we bring from the new to the old object
-				tp.Spec = t1.Spec
+				tp.Spec = v1.Spec
 				tp.ObjectMeta.OwnerReferences = v1.ObjectMeta.OwnerReferences
 
 				for k, v := range v1.ObjectMeta.Annotations {
