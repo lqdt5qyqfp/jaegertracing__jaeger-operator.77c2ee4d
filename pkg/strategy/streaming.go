@@ -76,7 +76,7 @@ func newStreamingStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 
 	// we provision a Kafka when no brokers have been set, or, when we are not in the first run,
 	// when we know we've been the ones placing the broker information in the configuration
-	if (!pfound || !cfound) || provisioned {
+	if (!pfound && !cfound) || provisioned {
 		jaeger.Logger().V(-1).Info(
 			"Kafka auto provisioning is enabled. A Kafka cluster will be deployed if it does not exist.",
 		)
@@ -112,7 +112,7 @@ func newStreamingStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	}
 
 	// add autoscalers
-	manifest.horizontalPodAutoscalers = append(manifest.horizontalPodAutoscalers, collector.Autoscalers()...)
+	manifest.horizontalPodAutoscalers = append(collector.Autoscalers(), ingester.Autoscalers()...)
 
 	if isBoolTrue(jaeger.Spec.Storage.Dependencies.Enabled) {
 		if cronjob.SupportedStorage(jaeger.Spec.Storage.Type) {
@@ -145,7 +145,7 @@ func newStreamingStrategy(ctx context.Context, jaeger *v1.Jaeger) S {
 	// prepare the deployments, which may get changed by the elasticsearch routine
 	cDep := collector.Get()
 	queryDep := inject.OAuthProxy(jaeger, query.Get())
-	if jaeger.Spec.Query.TracingEnabled != nil && *jaeger.Spec.Query.TracingEnabled {
+	if jaeger.Spec.Query.TracingEnabled == nil || *jaeger.Spec.Query.TracingEnabled {
 		queryDep = inject.Sidecar(jaeger, queryDep)
 	}
 	var ingesterDep *appsv1.Deployment
